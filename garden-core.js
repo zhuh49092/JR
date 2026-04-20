@@ -558,14 +558,41 @@ function initGarden() {
     // 从 API 加载数据并初始化花草
     async function loadGardenData() {
         try {
-            // 获取所有评论
-            AllCommData = await getData("getallcomment");
+            // 尝试从 API 获取数据
+            var data = null;
+            var comments = null;
             
-            // 获取所有记录
-            var data = await getData("getallrecords");
+            try {
+                // 获取所有评论
+                comments = await getData("getallcomment");
+                
+                // 获取所有记录
+                data = await getData("getallrecords");
+                console.log('成功从 API 加载数据，共' + data.length + '条记录');
+            } catch (apiError) {
+                console.log('API 访问失败，尝试从 data.json 加载:', apiError.message);
+                
+                // API 失败，尝试从 data.json 加载
+                try {
+                    const response = await fetch('data.json');
+                    if (!response.ok) {
+                        throw new Error('data.json 不存在');
+                    }
+                    const jsonData = await response.json();
+                    data = jsonData.data || [];
+                    comments = jsonData.comments || [];
+                    console.log('成功从 data.json 加载，共' + data.length + '条记录');
+                } catch (jsonError) {
+                    console.log('data.json 加载失败:', jsonError.message);
+                }
+            }
             
             if (data && data.length > 0) {
-                console.log('成功加载 API 数据，共' + data.length + '条记录');
+                // 保存评论数据到全局变量
+                if (comments) {
+                    AllCommData = comments;
+                }
+                
                 data.forEach(function(record, index) {
                     const imageIndex = randInt(0, cfg.plantImages.length - 1);
                     const plant = {
@@ -580,7 +607,7 @@ function initGarden() {
                         y: rand(200, cfg.worldSize.height - 200),
                         likes: record.likes || 0,
                         comments: [],
-                        isNew: false // 从 API 来的花草，不能切换
+                        isNew: false // 从 API 或 data.json 来的花草，不能切换
                     };
                     
                     // 从 AllCommData 中获取该记录的评论
