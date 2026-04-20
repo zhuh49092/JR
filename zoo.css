@@ -1,0 +1,174 @@
+﻿       body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f0f4ff 0%, #faf0ff 100%);
+            min-height: 100vh;
+            background-image:url("img/back.avif");
+            background-size:cover;
+        }
+        .wback{           
+        	  background-image:url("img/Daintree.png");
+            background-size:cover;}
+        .waterfall-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            grid-auto-rows: 10px; /* 关键：设置小的固定行高单位 */
+            gap: 20px;
+        }
+        @media (max-width: 767px) {
+					  .waterfall-grid {
+					    grid-template-columns: repeat(2, 1fr);
+					  }
+					}
+
+        .waterfall-card {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            break-inside: avoid;
+            
+        }
+        
+        .waterfall-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+        
+        .card-image {
+            width: 100%;
+            padding:5px;
+            border-radius: 12px;
+            display: block;
+            transition: transform 0.5s ease;
+        }
+        
+        .waterfall-card:hover .card-image {
+            transform: scale(1.03);
+        }
+        
+        .featured-card {
+            background: linear-gradient(135deg, #ffdada 0%, #ffdada 50%);
+            color: black;
+        }
+        
+        .featured-card .card-title,
+        .featured-card .card-text {
+            color: black;
+        }
+        
+        .featured-card .card-meta {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(99, 102, 241, 0.2);
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+		   .modal-overlay {
+		      background-color: rgba(0, 0, 0, 0.3);
+		      transition: opacity 0.3s ease;
+		      z-index: 9999;
+		    }
+		    .modal-content {
+		      transition: transform 0.3s ease, opacity 0.3s ease;
+		    }   
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+    .image-preview-container {
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      min-height: 150px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .image-preview-placeholder {
+      border: 2px dashed #cbd5e0;
+      background-color: #f8fafc;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #718096;
+      padding:20px;
+      cursor: pointer;      
+    }
+
+    .preview-image {
+      max-width: 100%;
+      max-height: 500px;
+      object-fit: contain;
+    }
+    .hidden-file-input {
+      position: absolute;
+      left: 0;
+      top: 0;
+      opacity: 0;
+      width: 0%;
+      height: 0%;
+      display:none;
+    }		 
+    .avatar-icon {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 10px;
+        margin-right: 8px;
+        background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+        color: #4f46e5;
+    }           
+    .icon-1 { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); color: #4f46e5; }
+    .icon-2 { background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%); color: #ec4899; }
+    .icon-3 { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); color: #10b981; }
+    .icon-4 { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); color: #f59e0b; }
+    .icon-5 { background: linear-gradient(135deg, #ede9fe 0%, #ddd6fe 100%); color: #8b5cf6; } 
+    .tooltip {visibility: hidden; width: 120px; background-color: #f1f1f1; color: #333; text-align: center; border-radius: 6px; padding: 5px 0; position: absolute; z-index: 10; top: 125%; /* 修改为在图标下方 */ left: 50%; margin-left: -60px; opacity: 0; transition: opacity 0.3s; box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+    }
+    .tooltip::after {content: ""; position: absolute; top: -5px; /* 修改箭头位置 */ left: 50%; margin-left: -5px; border-width: 5px; border-style: solid; border-color: transparent transparent #f1f1f1 transparent; 
+    }        
+     .icon-container:hover .tooltip {
+        visibility: visible;
+        opacity: 1;
+    }   
+    
+canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 1;
+} 
+
+.animal-image {
+    position: absolute;
+    z-index: 100;
+}       

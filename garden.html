@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>共创花园</title>
+    <link rel="stylesheet" href="garden.css">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script>
+        // 可配置的内容 - 以下设置可以根据需要修改
+        window.GARDEN_CONFIG = {
+            // 植物图片列表 - 可以添加或修改植物图片
+            plantImages: [
+                'plant/flower_amaryllis.png',
+                'plant/flower_anthurium.png',
+                'plant/flower_ayame.png',
+                'plant/flower_blue_bonnet.png',
+                'plant/flower_cattleya.png',
+                'plant/flower_christmas_rose.png',
+                'plant/flower_crocus.png',
+                'plant/flower_gaku_ajisai.png',
+                'plant/flower_gloriosa.png',
+                'plant/flower_himekaiu_calla.png',
+                'plant/flower_hyacinth.png',
+                'plant/flower_kalmia_karumia.png',
+                'plant/flower_katakuri.png',
+                'plant/flower_kikyou.png',
+                'plant/flower_kuroyuri.png',
+                'plant/flower_marigold.png',
+                'plant/flower_nanohana.png',
+                'plant/flower_nemophila.png',
+                'plant/flower_ooinunofuguri.png',
+                'plant/flower_rose_rainbow.png',
+                'plant/flower_saffron_safuran.png',
+                'plant/flower_sandersonia.png',
+                'plant/flower_shirotsumegusa.png',
+                'plant/flower_syakoba_saboten.png',
+                'plant/flower_tsubuwaki.png',
+                'plant/flower_whitelaceflower.png',
+                'plant/herb_geranium.png',
+                'plant/kinoko_porcino_poruchini.png',
+                'plant/plant_flower_seitaka_awadachisou.png',
+                'plant/rose_blue.png'
+            ],
+
+            // 用户名列表 - 随机分配给植物的用户名
+            userNames: ['小明', '小红', '小华', '阿强', '小美', '大伟', '小芳', '阿杰', '小丽', '老王'],
+
+            // 世界尺寸 - 花园世界的大小（像素）
+            worldSize: {
+                width: 3000,  // 宽度
+                height: 2000  // 高度
+            },
+
+            // 时间段配置 - 不同时间段的颜色和透明度
+            // 时间以分钟为单位（一天的总分钟数）
+            timePeriods: {
+                morning: { start: 300, end: 345, color: '#ff751f', opacity: 0.2 },  // 5:00-5:45 清晨
+                day: { start: 345, end: 1050, color: 'transparent', opacity: 1 },     // 5:45-17:30 白天
+                evening: { start: 1050, end: 1095, color: '#ff751f', opacity: 0.2 }, // 17:30-18:15 傍晚
+                night: { start: 1095, end: 300, color: '#004aad', opacity: 0.4 }    // 18:15-5:00 夜晚
+            },
+
+            // 昆虫配置
+            bugConfig: {
+                butterfly: {
+                    count: 3,              // 初始蝴蝶数量
+                    minInterval: 8000,     // 生成蝴蝶的最小间隔（毫秒）
+                    maxInterval: 15000,    // 生成蝴蝶的最大间隔（毫秒）
+                    spawnDelayMin: 1000,   // 初始生成的最小延迟（毫秒）
+                    spawnDelayMax: 3000    // 初始生成的最大延迟（毫秒）
+                },
+                bee: {
+                    count: 3,              // 初始蜜蜂数量
+                    minInterval: 6000,     // 生成蜜蜂的最小间隔（毫秒）
+                    maxInterval: 12000,    // 生成蜜蜂的最大间隔（毫秒）
+                    spawnDelayMin: 800,    // 初始生成的最小延迟（毫秒）
+                    spawnDelayMax: 2500    // 初始生成的最大延迟（毫秒）
+                },
+                firefly: {
+                    count: 12              // 萤火虫数量（夜晚显示）
+                }
+            },
+
+            // 植物配置
+            plantConfig: {
+                initialCount: 5,     // 初始植物数量
+                imageWidth: 80,      // 植物图片宽度（像素）
+                dragThreshold: 5     // 拖拽阈值（像素）
+            },
+
+            // 缩放配置
+            zoomConfig: {
+                minScale: 0.3,       // 最小缩放比例
+                maxScale: 3,         // 最大缩放比例
+                scaleFactor: 1.2,    // 点击缩放按钮的缩放因子
+                wheelFactor: 1.1     // 鼠标滚轮的缩放因子
+            },
+
+            // UI配置
+            uiConfig: {
+                timeUpdateInterval: 60000,  // 时间更新间隔（毫秒）
+                commentChance: 0.5,         // 初始植物带评论的概率
+                sampleComments: ['好漂亮的花！', '真美！', '喜欢这个！', '太棒了！']  // 示例评论
+            }
+        };
+    </script>
+    <script>
+        // 本地数据（从data.json加载）- 支持file://协议
+        window.LOCAL_DATA = {
+            "success": true,
+            "count": 5,
+            "data": [
+                {
+                    "id": "1775040434312-6093",
+                    "name": "test",
+                    "content": "This is a test.",
+                    "picture": "https://192.168.3.18:3000/uploads/xy/HoHi54V8IE-n1bu1WLhHV6qpV9Vi1xArunQfQW6VBRZ3k5nyR6UX9ccGKgn-53vk.jpg",
+                    "pubdate": "2026-04-01T10:47:16.036Z",
+                    "entry_type": "",
+                    "key_id": "",
+                    "likes": 0,
+                    "comments": 1
+                },
+                {
+                    "id": "1775041420056-9905",
+                    "name": "test",
+                    "content": "",
+                    "picture": "https://192.168.3.18:3000/uploads/xy/hOVIsEvhcnT3o98CITav2ZAaGWHv5kTsy_Bzxb3dHWdCdFu5t5TETrOI6kC959VG.jpg",
+                    "pubdate": "2026-04-01T11:03:42.225Z",
+                    "entry_type": "",
+                    "key_id": "",
+                    "likes": 0,
+                    "comments": 0
+                },
+                {
+                    "id": "1775042165800-5662",
+                    "name": "test",
+                    "content": "Clay × Nutrition Workshop",
+                    "picture": "https://192.168.3.18:3000/uploads/xy/IMG_0084.jpg",
+                    "pubdate": "2026-04-01T11:16:07.420Z",
+                    "entry_type": "",
+                    "key_id": "",
+                    "likes": 0,
+                    "comments": 0
+                },
+                {
+                    "id": "1775042165800-5678",
+                    "name": "test",
+                    "content": "这是一片美丽的花园！让我们一齐来美化！",
+                    "picture": "",
+                    "pubdate": "2026-04-01T11:16:07.420Z",
+                    "entry_type": "",
+                    "key_id": "",
+                    "likes": 0,
+                    "comments": 0
+                },
+                {
+                    "id": "1775207238469-7837",
+                    "name": "Hide",
+                    "content": "富士山",
+                    "picture": "https://192.168.3.18:3000/uploads/xy/IMG_0058.jpg",
+                    "pubdate": "2026-04-03T09:07:19.831Z",
+                    "entry_type": "nfc",
+                    "key_id": 14,
+                    "likes": 1,
+                    "comments": 0
+                }
+            ]
+        };
+    </script>
+    <script src="garden-core.js"></script>
+</head>
+<body>
+    <div id="garden-container">
+        <div id="garden-world">
+            <div id="background-layer"></div>
+            <div id="time-overlay"></div>
+            <div id="plants-layer"></div>
+        </div>
+    </div>
+
+    <button id="plant-btn" title="种植"></button>
+
+    <div id="zoom-controls">
+        <button class="zoom-btn" id="zoom-in">+</button>
+        <button class="zoom-btn" id="zoom-out">-</button>
+        <button class="zoom-btn" id="zoom-reset">⟲</button>
+    </div>
+
+    <div id="time-display">
+        <span id="current-time"></span>
+        <span id="time-period"></span>
+    </div>
+
+    <div id="modal-overlay">
+        <div id="modal-content">
+            <span id="modal-close">&times;</span>
+            <h3 class="modal-title">投稿详情</h3>
+            <div id="modal-plant-info"></div>
+            <div class="comment-list" id="comment-list"></div>
+            <textarea id="comment-input" placeholder="写下你的评论..."></textarea>
+            <button id="submit-comment">发表评论</button>
+        </div>
+    </div>
+
+    <div id="ambient-layer"></div>
+
+    <script>
+        $(document).ready(function() {
+            initGarden();
+        });
+    </script>
+</body>
+</html>

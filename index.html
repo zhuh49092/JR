@@ -1,0 +1,239 @@
+﻿
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>夢見ヶ崎動物公園新聞スペース</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="zoo.css">
+     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="js.js"></script> 
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        accent: '#ec4899'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>       
+     
+    </style>
+</head>
+	<canvas id="confetti-canvas"></canvas>
+<body class="p-4 wback">
+	<div id="animationArea"></div>
+    <div class=" mx-auto">
+        <!-- 头部 -->
+        <header class="text-center mb-12 fade-in pl-8 ">
+        	<div class="flex justify-between items-center h-16">
+             <div class="flex items-center" style="flex-wrap:wrap">
+			            <h1 class="text-xl md:text-2xl text-left font-bold text-white mb-3" style="flex: 1 1 100%;">
+			                夢見ヶ崎動物公園新聞スペース
+			            </h1>
+			            <p class="text-sm text-white max-w-2xl  text-left ">
+			                今日の楽しさ、あとからも。キーホルダで、いつでも。
+			            </p>
+            </div>       	
+
+             <!-- 右侧用户区域 -->
+            <div class="flex items-center space-x-4">
+                <!-- 用户头像及注册按钮 -->
+                <div class="flex items-center space-x-3">                                     
+                    <div class="relative icon-container" onclick="popup()">
+                        <div  class="w-10 h-10 rounded-full bg-gradient-to-r from-yellow-400 to-yellow-600 cursor-pointer hover:scale-110 hover:shadow-lg transition-transform duration-300 flex items-center justify-center text-white font-medium relative">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <span class="tooltip">投稿</span>
+                    </div>
+                    <div class="relative icon-container">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 cursor-pointer hover:scale-110 hover:shadow-lg transition-transform duration-300 flex items-center justify-center text-white font-medium relative">
+                            <i class="fas fa-user"></i>                            
+                        </div>
+                        <span id="user" class="tooltip">张三</span>
+                    </div>                    
+                </div>
+            </div>      
+          </div>     
+        </header>
+        
+        <!-- 瀑布流容器 -->
+        <div id="waterfallContainer" class="waterfall-grid">
+            <!-- 卡片将通过JavaScript动态生成 -->
+        </div>
+        
+        <!-- 加载指示器 -->
+        <div id="loadingIndicator" class="flex justify-center my-12 hidden">
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+    
+  <!-- Modal Overlay -->
+  <div id="modalOverlay" class="fixed inset-0 flex items-center justify-center hidden modal-overlay">
+    <div class="bg-green-50 rounded-xl shadow-2xl w-full max-w-md p-6 modal-content scale-100 opacity-100">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-semibold text-gray-800"></h2>
+        <button id="closeModalBtn" class="text-gray-500 hover:text-gray-700 ml-auto">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+		   <form id="submitForm" class="space-y-6"> 
+		   	<div id="formContent">
+			  </div>   
+		      <div class="flex justify-center">
+		        <button type="submit" id="submitBtn" class="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 transition duration-300 disabled:opacity-50 disabled:cursor-not-allowed" >
+		         投稿
+		        </button>
+		      </div>
+		    </form>
+       <div id="result" class="mt-6 hidden p-4 rounded-lg border"></div> 
+    </div>
+  </div>
+      <script src="pubjs.js"></script>
+      <script src="newfun.js"></script>   
+    <script>
+        // 卡片数据 - 包含不同长度的内容
+        const firstcard = {
+                id: 1,
+                type: 'image',
+                title: '',
+                content: '‼️‼️‼️要注意‼️‼️‼️　投稿の際は、ご本人や他の方のお顔が写らないようご配慮ください。',
+                likes: 0,
+                comments: 0
+            };
+
+
+       // 加载数据
+        async function loadData() {
+            // 显示加载状态
+            $('#loadingIndicator').removeClass('hidden');       
+            try {
+                  AllCommData=await getData("getallcomment");
+                  
+                  var data=await getData("getallrecords");
+                    // 显示数据
+                    displayData(data);
+                  
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            } finally {
+                $('#loadingIndicator').addClass('hidden');
+            }
+        }
+
+       
+        // 显示数据
+        function displayData(data) {
+            if (!data || data.length === 0) {
+                return;
+            }           
+            data.forEach((row, index) => {
+								   addNewCard(row)           
+            });
+        }
+  
+        // 页面加载完成后初始化
+     $(document).ready(function() {     		  
+     	     addNewCard(firstcard,1);  //加第一张卡片
+     	     loadData();           
+     	     $('#closeModalBtn').on('click', function(){hideModal('#modalOverlay')});
+
+            // 监听窗口大小变化，重新计算高度
+            window.addEventListener('resize', function() {
+                setTimeout(calculateAndSetCardHeights, 100);
+            });
+            $("#user").html(author);                   
+    })      
+                          
+        function popup(){
+         	  if(author==''){
+       	  	authorWin(1,'');
+       	  	return;
+       	  }         	
+        	makeform([{type:'image',id:'imageFile',tip:'写真をアップロード'},
+        	{type:'text',id:'commitMessage',title:'話したいこと',tip:'今日の天気がいいね……'}
+        	]);
+        	$('#submitBtn').html("投稿");
+        	$('#submitForm').off('submit');
+  		    $('#submitForm').on('submit', function(e) {
+		        e.preventDefault();
+		        var $resultDiv = $('#result');
+		        $resultDiv.addClass('hidden');
+		        var upjs=0;
+		        const commitMessage = $('#commitMessage').val() || '';
+		        const imageFile = $('#imageFile')[0].files[0];		
+		        if (!imageFile)upjs++;
+		        if (commitMessage=='')upjs++;
+		        if(upjs==2)
+		        {
+		         showResult('写真、もしくはメッセージを残してね', 'error');
+		         return;	
+		        }	        
+		         $("#submitBtn").prop('disabled', true);
+		         SendData(imageFile,commitMessage);			
+		      });       	
+        	showModal("#modalOverlay");               	
+        }
+       function commentCard(_id){   
+       	  if(author==''){
+       	  	authorWin(2,_id);
+       	  	return;
+       	  }   	
+        	makeform([{type:'text',id:'commentConent',title:'貴重なコメントをお願いします',tip:'貴重なコメントをお願いします'},
+        	{type:'hidden',id:'cardId',value:_id}
+        	]);
+        	$('#submitBtn').html('コメントの送信');
+        	$('#submitForm').off('submit'); 
+ 	        $('#submitForm').on('submit', function(e) {
+		        e.preventDefault();
+		        var $resultDiv = $('#result');
+		        $resultDiv.addClass('hidden');
+		        const _id=$("#cardId").val();
+		        const commentConent = $('#commentConent').val() || '';
+	          if (commentConent=='') {
+		          showResult('一言お願いします', 'error');
+		          return;
+		        }			        
+		         $("#submitBtn").prop('disabled', true);
+		         PostComment(_id,commentConent);		
+		      });       	      	
+        	showModal("#modalOverlay"); 
+        }       
+        function authorWin(_type,_id){    	
+        	makeform([{type:'input',id:'author',title:'ニックネーム',tip:'はじめての投稿ですね。表示名を入力してください。'}
+        	]);
+        	$('#submitBtn').html('確定');
+        	$('#submitForm').off('submit'); 
+ 	        $('#submitForm').on('submit', function(e) {
+		        e.preventDefault();
+		        var $resultDiv = $('#result');
+		        $resultDiv.addClass('hidden');
+		        author=$("#author").val();	
+	          if (author=='') {
+		          showResult('表示名は必須です。', 'error');
+		          return;
+		        }		        	        
+		         $("#submitBtn").prop('disabled', true);
+		        saveGuestName("author", author)	
+		        hideModal("#modalOverlay"); 
+		        $("#user").html(author); 
+		        if(_type==1){
+		        	popup();
+		        }
+		        else
+		        	{
+		        		commentCard(_id)
+		        	}		         	
+		      });       	      	
+        	showModal("#modalOverlay"); 
+        }        
+    </script>
+</body>
+</html>

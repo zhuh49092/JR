@@ -1,0 +1,403 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    font-family: 'Microsoft YaHei', sans-serif;
+    user-select: none;
+}
+
+#garden-container {
+    position: fixed;
+    inset: 0;
+    overflow: hidden;
+    cursor: grab;
+}
+
+#garden-container:active {
+    cursor: grabbing;
+}
+
+#garden-world {
+    position: absolute;
+    transform-origin: 0 0;
+    width: 3000px;
+    height: 2000px;
+    visibility: hidden;
+}
+
+#background-layer {
+    position: absolute;
+    inset: 0;
+    background: url('plant/bg.png') center center / cover no-repeat;
+    width: 100%;
+    height: 100%;
+}
+
+#time-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: background-color 2s ease, opacity 2s ease;
+}
+
+#plants-layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.plant {
+    position: absolute;
+    cursor: move;
+    z-index: 10;
+    transition: transform 0.1s ease;
+}
+
+.plant:hover {
+    transform: scale(1.05);
+}
+
+.plant img {
+    width: 80px;
+    height: auto;
+    pointer-events: none;
+}
+
+.plant-user-image {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.8);
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 11;
+    opacity: 0.9;
+}
+
+.plant-user-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.9;
+}
+
+.plant-user-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 50%;
+    border: 2px solid #fff;
+    font-size: 7px;
+    color: #333;
+    text-align: center;
+    word-wrap: break-word;
+    z-index: 11;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    line-height: 1.1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    overflow: hidden;
+    opacity: 0.9;
+}
+
+.plant-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 6px;
+    color: #4a90e2;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.3s ease, background 0.2s ease;
+    z-index: 12;
+    user-select: none;
+    line-height: 12px;
+    text-align: center;
+    padding: 0;
+}
+
+.plant:hover .plant-arrow,
+.plant-new .plant-arrow {
+    opacity: 1;
+}
+
+.plant-arrow:hover {
+    background: rgba(255, 255, 255, 0.8);
+    color: #2d6cb4;
+}
+
+.plant-arrow-left {
+    left: -28px;
+}
+
+.plant-arrow-right {
+    right: -28px;
+}
+
+.comment-badge {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: #ff4757;
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: bold;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    pointer-events: none;
+}
+
+#plant-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    background: url('plant/icon.png') center center / contain no-repeat;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 1000;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#plant-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+}
+
+#plant-btn:active {
+    transform: scale(0.95);
+}
+
+#zoom-controls {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.zoom-btn {
+    width: 40px;
+    height: 40px;
+    background: rgba(255,255,255,0.9);
+    border: none;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    transition: background 0.2s;
+}
+
+.zoom-btn:hover {
+    background: #fff;
+}
+
+#modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    z-index: 2000;
+}
+
+#modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: absolute;
+}
+
+#modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+#modal-close:hover {
+    color: #333;
+}
+
+.modal-title {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.comment-list {
+    margin-bottom: 20px;
+}
+
+.comment-item {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.comment-user {
+    font-weight: bold;
+    color: #666;
+    margin-bottom: 5px;
+}
+
+.comment-text {
+    color: #333;
+}
+
+#comment-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    resize: none;
+    height: 80px;
+    margin-bottom: 10px;
+}
+
+#submit-comment {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+#submit-comment:hover {
+    background: #45a049;
+}
+
+#ambient-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 999;
+}
+
+.bug {
+    position: absolute;
+    pointer-events: none;
+    will-change: transform, opacity;
+}
+
+.butterfly {
+    width: 28px;
+    height: 20px;
+    opacity: 0.9;
+}
+
+.butterfly::before {
+    content: "🦋";
+    position: absolute;
+    inset: 0;
+    font-size: 24px;
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: butterflyFlap 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes butterflyFlap {
+    from { transform: scale(0.95) rotate(-4deg); }
+    to   { transform: scale(1.05) rotate(4deg); }
+}
+
+.bee {
+    width: 20px;
+    height: 20px;
+    opacity: 0.9;
+}
+
+.bee::before {
+    content: "🐝";
+    position: absolute;
+    inset: 0;
+    font-size: 18px;
+    line-height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: beeBuzz 0.18s linear infinite alternate;
+}
+
+@keyframes beeBuzz {
+    from { transform: translateY(-1px) rotate(-3deg); }
+    to   { transform: translateY(1px) rotate(3deg); }
+}
+
+.firefly {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: rgba(255, 245, 160, 0.95);
+    box-shadow:
+        0 0 6px rgba(255, 245, 160, 0.9),
+        0 0 14px rgba(255, 245, 160, 0.6),
+        0 0 24px rgba(255, 245, 160, 0.35);
+    opacity: 0;
+    animation: fireflyBlink 2.4s ease-in-out infinite;
+}
+
+@keyframes fireflyBlink {
+    0%, 100% { opacity: 0.15; }
+    50%      { opacity: 1; }
+}
+
+#time-display {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(255,255,255,0.9);
+    padding: 10px 15px;
+    border-radius: 10px;
+    font-size: 14px;
+    color: #333;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.plant.dragging {
+    z-index: 100;
+    opacity: 0.8;
+}
