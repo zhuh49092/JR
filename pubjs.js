@@ -4,7 +4,7 @@
    var _key='';
    var detailData;   
     // Google Apps Script部署后的Web应用URL 
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby6Wn-dVZ6LB2SegCi4JNfgeWc1Hdcv2wc7LnO35jruz0T2uS_2W62kQQDd5FPFMnkWKQ/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwkyPL8d0hwSFV95DctKBIICSpaN2Fj06x5uzdWz_BesK_tjdSa6qvNcy6mgi5y7978/exec';
 		 function generateUniqueId() {
 		  const timestamp = new Date().getTime();
 		  const randomPart = Math.floor(Math.random() * 10000);

@@ -1,8 +1,5 @@
 // 核心功能逻辑
 
-// 本地数据（从data.json加载）
-let localData = null;
-
 let plants = [];
 let newPlants = []; // 新种植的花草记录，将来要提交到后台
 let currentPlantId = 0;
@@ -23,6 +20,21 @@ function randInt(min, max) {
 
 function chance(p) {
     return Math.random() < p;
+}
+
+// 筛选数据（从 pubjs.js 复制过来）
+function filterData(data, _id) {
+    let filteredData = data.filter(item => item.pid === _id);
+    const sortedData = filteredData.sort((a, b) => {
+        let valueA = a.Cdate;
+        let valueB = b.Cdate;
+        if (typeof valueA === 'string') {
+            valueA = valueA.toLowerCase();
+            valueB = valueB.toLowerCase();
+        }
+        return valueA < valueB ? 1 : -1;
+    });
+    return sortedData;
 }
 
 function getTimePeriod() {
@@ -543,111 +555,99 @@ function initGarden() {
     });
     $('#submit-comment').on('click', addComment);
 
+    // 从 API 加载数据并初始化花草
+    async function loadGardenData() {
+        try {
+            // 获取所有评论
+            AllCommData = await getData("getallcomment");
+            
+            // 获取所有记录
+            var data = await getData("getallrecords");
+            
+            if (data && data.length > 0) {
+                console.log('成功加载 API 数据，共' + data.length + '条记录');
+                data.forEach(function(record, index) {
+                    const imageIndex = randInt(0, cfg.plantImages.length - 1);
+                    const plant = {
+                        id: currentPlantId++,
+                        recordId: record.id || record.rid,
+                        imageIndex: imageIndex,
+                        image: cfg.plantImages[imageIndex],
+                        userImage: record.picture || '',
+                        userContent: (!record.picture || record.picture.trim() === '') && record.content ? (record.content.length > 8 ? record.content.substring(0, 8) + '...' : record.content) : '',
+                        userName: record.name || record.gname || '',
+                        x: rand(200, cfg.worldSize.width - 200),
+                        y: rand(200, cfg.worldSize.height - 200),
+                        likes: record.likes || 0,
+                        comments: [],
+                        isNew: false // 从 API 来的花草，不能切换
+                    };
+                    
+                    // 从 AllCommData 中获取该记录的评论
+                    if (AllCommData && AllCommData.length > 0) {
+                        var recordComments = filterData(AllCommData, plant.recordId);
+                        if (recordComments && recordComments.length > 0) {
+                            recordComments.forEach(function(comment) {
+                                plant.comments.push({
+                                    user: comment.name || '匿名用户',
+                                    text: comment.comment || '',
+                                    cdate: comment.Cdate || new Date().toISOString()
+                                });
+                            });
+                        }
+                    }
+                    
+                    // 如果有评论数但没有具体评论，添加一些模拟评论
+                    if (record.comments > 0 && plant.comments.length === 0) {
+                        for (let j = 0; j < record.comments; j++) {
+                            plant.comments.push({
+                                user: cfg.userNames[randInt(0, cfg.userNames.length - 1)],
+                                text: cfg.uiConfig.sampleComments[randInt(0, cfg.uiConfig.sampleComments.length - 1)]
+                            });
+                        }
+                    }
+                    
+                    plants.push(plant);
+                    renderPlant(plant);
+                });
+            } else {
+                console.log('使用默认花草');
+                initDefaultPlants();
+            }
+        } catch (error) {
+            console.error('加载数据失败:', error);
+            console.log('使用默认花草');
+            initDefaultPlants();
+        }
+    }
+    
+    function initDefaultPlants() {
+        for (let i = 0; i < cfg.plantConfig.initialCount; i++) {
+            const imageIndex = randInt(0, cfg.plantImages.length - 1);
+            const plant = {
+                id: currentPlantId++,
+                imageIndex: imageIndex,
+                image: cfg.plantImages[imageIndex],
+                userImage: 'img/A' + (randInt(1, 30)) + '.png',
+                userContent: '',
+                x: rand(200, cfg.worldSize.width - 200),
+                y: rand(200, cfg.worldSize.height - 200),
+                comments: [],
+                isNew: false // 默认花草，不能切换
+            };
+            plants.push(plant);
+            renderPlant(plant);
+        }
+    }
+    
+    // 执行加载
+    loadGardenData();
+
     spawnMultipleButterflies();
     spawnMultipleBees();
     createFireflies();
 
-    // 加载本地数据
-    function loadLocalData(callback) {
-        // 首先检查是否有window.LOCAL_DATA变量（可以在HTML中定义）
-        if (window.LOCAL_DATA) {
-            callback(window.LOCAL_DATA);
-            return;
-        }
-        
-        // 尝试fetch
-        fetch('data.json')
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(data) {
-                localData = data;
-                callback(data);
-            })
-            .catch(function(error) {
-                console.log('fetch失败，尝试XMLHttpRequest');
-                // 尝试XMLHttpRequest
-                try {
-                    const xhr = new XMLHttpRequest();
-                    xhr.overrideMimeType('application/json');
-                    xhr.open('GET', 'data.json', true);
-                    xhr.onreadystatechange = function() {
-                        if (xhr.readyState === 4 && xhr.status === 200) {
-                            try {
-                                const data = JSON.parse(xhr.responseText);
-                                localData = data;
-                                callback(data);
-                            } catch (e) {
-                                console.log('XMLHttpRequest解析失败，使用默认数据');
-                                callback(null);
-                            }
-                        }
-                    };
-                    xhr.send();
-                } catch (e) {
-                    console.log('XMLHttpRequest失败，使用默认数据');
-                    callback(null);
-                }
-            });
-    }
-
-    // 加载数据并初始化花草
-    loadLocalData(function(data) {
-        if (data && data.data && data.data.length > 0) {
-            console.log('成功加载data.json，共' + data.data.length + '条记录');
-            data.data.forEach(function(record, index) {
-                const imageIndex = randInt(0, cfg.plantImages.length - 1);
-                const plant = {
-                    id: currentPlantId++,
-                    recordId: record.id,
-                    imageIndex: imageIndex,
-                    image: cfg.plantImages[imageIndex],
-                    userImage: record.picture || '',
-                    userContent: (!record.picture || record.picture.trim() === '') && record.content ? (record.content.length > 8 ? record.content.substring(0, 8) + '...' : record.content) : '',
-                    userName: record.name || '',
-                    x: rand(200, cfg.worldSize.width - 200),
-                    y: rand(200, cfg.worldSize.height - 200),
-                    likes: record.likes || 0,
-                    comments: [],
-                    isNew: false // 从data.json来的花草，不能切换
-                };
-                
-                // 如果有评论数，添加一些模拟评论
-                if (record.comments > 0) {
-                    for (let j = 0; j < record.comments; j++) {
-                        plant.comments.push({
-                            user: cfg.userNames[randInt(0, cfg.userNames.length - 1)],
-                            text: cfg.uiConfig.sampleComments[randInt(0, cfg.uiConfig.sampleComments.length - 1)]
-                        });
-                    }
-                }
-                
-                plants.push(plant);
-                renderPlant(plant);
-            });
-        } else {
-            console.log('使用默认花草');
-            // 如果读取失败，使用默认的花草
-            for (let i = 0; i < cfg.plantConfig.initialCount; i++) {
-                const imageIndex = randInt(0, cfg.plantImages.length - 1);
-                const plant = {
-                    id: currentPlantId++,
-                    imageIndex: imageIndex,
-                    image: cfg.plantImages[imageIndex],
-                    userImage: 'img/A' + (randInt(1, 30)) + '.png',
-                    userContent: '',
-                    x: rand(200, cfg.worldSize.width - 200),
-                    y: rand(200, cfg.worldSize.height - 200),
-                    comments: [],
-                    isNew: false // 默认花草，不能切换
-                };
-                plants.push(plant);
-                renderPlant(plant);
-            }
-        }
-    });
-
-    // 默认放大3倍并随机设置初始位置
+    // 默认放大 3 倍并随机设置初始位置
     scale = 3;
     
     // 计算平移范围，确保花园在屏幕内
