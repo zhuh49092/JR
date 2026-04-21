@@ -202,17 +202,17 @@ body {
 
 .likes-badge {
     position: absolute;
-    bottom: -8px;
+    bottom: -6px;
     left: 50%;
     transform: translateX(-50%);
     color: #ff4757;
-    font-size: 24px;
+    font-size: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 15;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
@@ -222,7 +222,7 @@ body {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%);
-    font-size: 24px;
+    font-size: 16px;
     color: #ff4757;
 }
 
@@ -230,7 +230,7 @@ body {
     content: attr(data-count);
     position: relative;
     z-index: 2;
-    font-size: 9px;
+    font-size: 7px;
     font-weight: bold;
     color: white;
     text-shadow: 0 1px 3px rgba(0,0,0,0.5);

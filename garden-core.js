@@ -1026,22 +1026,6 @@ function closeModal() {
     }, 300);
 }
 
-// 显示结果消息
-function showResult(message, type) {
-    let $resultDiv = $('#modal-content #modal-result');
-    if ($resultDiv.length === 0) {
-        $resultDiv = $('<div id="modal-result" class="mt-4 p-3 rounded-lg border"></div>');
-        $('#modal-content .modal-body').append($resultDiv);
-    }
-    $resultDiv.removeClass('hidden bg-red-50 text-red-700 border-red-200 bg-green-50 text-green-700 border-green-200');
-    if (type === 'success') {
-        $resultDiv.addClass('bg-green-50 text-green-700 border-green-200');
-    } else {
-        $resultDiv.addClass('bg-red-50 text-red-700 border-red-200');
-    }
-    $resultDiv.html(message);
-}
-
 // 用户名输入弹窗
 function showAuthorForm(callback) {
     const contentHtml = '<div class="space-y-4">' +
@@ -1061,7 +1045,7 @@ function showAuthorForm(callback) {
     $('#author-submit').off('click').on('click', function() {
         const name = $('#author-input').val().trim();
         if (!name) {
-            showResult('表示名は必須です。', 'error');
+            showBubbleMessage('表示名は必須です。', 'warning');
             return;
         }
         saveGardenAuthor(name);
@@ -1113,7 +1097,7 @@ function showSubmitForm(plant) {
         const file = e.target.files[0];
         if (!file) return;
         if (!file.type.match('image.*')) {
-            showResult('画像ファイルを選択してください', 'error');
+            showBubbleMessage('画像ファイルを選択してください', 'warning');
             return;
         }
         selectedImage = file;
@@ -1129,7 +1113,7 @@ function showSubmitForm(plant) {
     $('#submit-btn').off('click').on('click', async function() {
         const message = $('#submit-message').val().trim();
         if (!selectedImage && !message) {
-            showResult('写真、もしくはメッセージを残してね', 'error');
+            showBubbleMessage('写真、もしくはメッセージを残してね', 'warning');
             return;
         }
         $('#submit-btn').prop('disabled', true);
@@ -1148,7 +1132,7 @@ async function submitData(imageFile, message, plant) {
             const base64Data = await compressImageToBase64(imageFile);
             const uploadResult = await uploadImageToGitHub(message, base64Data, imageFile.name);
             if (!uploadResult.success) {
-                showResult('图片上传失败: ' + uploadResult.message, 'error');
+                showBubbleMessage('图片上传失败: ' + uploadResult.message, 'warning');
                 $('#submit-btn').prop('disabled', false);
                 return;
             }
@@ -1215,12 +1199,12 @@ async function submitData(imageFile, message, plant) {
             }, 100);
         }
         
-        showResult('投稿成功！', 'success');
+        showBubbleMessage('投稿成功！', 'success');
         setTimeout(() => {
             closeModal();
         }, getSubmitCloseDelay());
     } catch (error) {
-        showResult('投稿失败：' + error.message, 'error');
+        showBubbleMessage('投稿失败：' + error.message, 'warning');
         $('#submit-btn').prop('disabled', false);
     }
 }
@@ -1497,47 +1481,11 @@ function initGarden() {
             URL.revokeObjectURL(commentsUrl);
 
             // 显示保存成功提示
-            showSaveMessage('数据已保存到 data.json 和 comment.json！', 'success');
+            showBubbleMessage('数据已保存到 data.json 和 comment.json！', 'success');
         } catch (error) {
             console.error('保存失败:', error);
-            showSaveMessage('保存失败：' + error.message, 'error');
+            showBubbleMessage('保存失败：' + error.message, 'warning');
         }
-    }
-
-    // 显示保存结果消息
-    function showSaveMessage(message, type) {
-        const $message = $('<div class="save-message ' + type + '">' + message + '</div>');
-        $message.css({
-            position: 'fixed',
-            top: '80px',
-            left: '20px',
-            padding: '12px 20px',
-            borderRadius: '8px',
-            zIndex: 1001,
-            fontWeight: 'bold',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.2)'
-        });
-
-        if (type === 'success') {
-            $message.css({
-                background: '#d4edda',
-                color: '#155724',
-                border: '1px solid #c3e6cb'
-            });
-        } else {
-            $message.css({
-                background: '#f8d7da',
-                color: '#721c24',
-                border: '1px solid #f5c6cb'
-            });
-        }
-
-        $('body').append($message);
-        setTimeout(function() {
-            $message.fadeOut(300, function() {
-                $(this).remove();
-            });
-        }, 3000);
     }
 
     // 绑定保存按钮事件
