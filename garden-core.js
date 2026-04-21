@@ -452,14 +452,15 @@ function createPlant() {
     const worldY = spot.y;
 
     // 创建新的花草记录
-    const imageIndex = randInt(0, cfg.plantImages.length - 1);
+    const maxIndex = Math.max(0, cfg.plantImages.length - 1);
+    const imageIndex = randInt(0, maxIndex);
     const timestamp = Date.now();
     
     const newPlant = {
         id: currentPlantId++,
-        recordId: 'new-' + timestamp, // 新花草的唯一 ID
+        recordId: 'new-' + timestamp,
         imageIndex: imageIndex,
-        image: cfg.plantImages[imageIndex],
+        image: cfg.plantImages[imageIndex] || cfg.plantImages[0] || '',
         userImage: '',
         userContent: '',
         userName: '',
@@ -524,10 +525,14 @@ function renderPlant(plant, showArrows) {
         $plant.addClass('plant-new');
 
         // 箭头默认显示，5秒后自动隐藏
-        let arrowHideTimer = setTimeout(function() {
-            $leftArrow.fadeOut(300);
-            $rightArrow.fadeOut(300);
-        }, getArrowHideDelay());
+        let arrowHideTimer = startArrowHideTimer();
+
+        function startArrowHideTimer() {
+            return setTimeout(function() {
+                $leftArrow.fadeOut(300);
+                $rightArrow.fadeOut(300);
+            }, getArrowHideDelay());
+        }
 
         // 左箭头点击切换花草
         $leftArrow.on('click', function(e) {
@@ -537,6 +542,8 @@ function renderPlant(plant, showArrows) {
             plant.imageIndex = (plant.imageIndex - 1 + cfg.plantImages.length) % cfg.plantImages.length;
             plant.image = cfg.plantImages[plant.imageIndex];
             $img.attr('src', plant.image);
+            // 重置隐藏计时器
+            arrowHideTimer = startArrowHideTimer();
         });
 
         // 右箭头点击切换花草
@@ -547,6 +554,8 @@ function renderPlant(plant, showArrows) {
             plant.imageIndex = (plant.imageIndex + 1) % cfg.plantImages.length;
             plant.image = cfg.plantImages[plant.imageIndex];
             $img.attr('src', plant.image);
+            // 重置隐藏计时器
+            arrowHideTimer = startArrowHideTimer();
         });
     }
 
@@ -1411,11 +1420,17 @@ function initGarden() {
 
     // 规范化植物图片路径：统一添加前缀和后缀
     if (cfg.plantImages && cfg.plantImages.length > 0) {
-        cfg.plantImages = cfg.plantImages.map(function(img) {
-            // 去掉可能已有的前缀和后缀
-            let name = img.replace(/^plant\//, '').replace(/\.png$/, '');
-            return 'plant/' + name + '.png';
-        });
+        cfg.plantImages = cfg.plantImages
+            .filter(function(img) { return img && img.trim(); })
+            .map(function(img) {
+                let name = img.replace(/^plant\//, '').replace(/\.png$/, '');
+                return 'plant/' + name + '.png';
+            });
+    }
+
+    // 安全检查：如果没有植物图片，给出警告
+    if (!cfg.plantImages || cfg.plantImages.length === 0) {
+        console.error('植物图片列表为空，请检查 garden.html 中的 plantImages 配置');
     }
 
     updateTimeOverlay();
