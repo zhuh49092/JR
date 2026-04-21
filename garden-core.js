@@ -1783,9 +1783,29 @@ function initGarden() {
     const minTranslateX = containerWidth - worldScaledWidth;
     const minTranslateY = containerHeight - worldScaledHeight;
     
-    // 随机设置初始位置，确保在有效范围内
-    translateX = getConfig('interactionConfig.initialTranslateRandom', true) ? rand(minTranslateX, 0) : 0;
-    translateY = rand(minTranslateY, 0);
+    // 初始化视口定位：优先定位到有花草的区域
+    if (plants.length > 0 && getConfig('interactionConfig.initialTranslateRandom', true)) {
+        // 计算所有植物的中心点
+        let centerX = 0, centerY = 0;
+        for (let i = 0; i < plants.length; i++) {
+            centerX += plants[i].x;
+            centerY += plants[i].y;
+        }
+        centerX = centerX / plants.length;
+        centerY = centerY / plants.length;
+        
+        // 将视口中心对准植物中心点
+        translateX = containerWidth / 2 - centerX * scale;
+        translateY = containerHeight / 2 - centerY * scale;
+        
+        // 确保在有效范围内
+        translateX = Math.max(minTranslateX, Math.min(0, translateX));
+        translateY = Math.max(minTranslateY, Math.min(0, translateY));
+    } else {
+        // 没有植物或关闭随机定位时，使用随机位置
+        translateX = getConfig('interactionConfig.initialTranslateRandom', true) ? rand(minTranslateX, 0) : 0;
+        translateY = rand(minTranslateY, 0);
+    }
     
     updateTransform();
     
