@@ -181,6 +181,11 @@ function doPost(e) {
         const viewResult=saveView(record.rid,'view',record.entry_type,record.key_id,record.name)
         output.setContent(JSON.stringify(viewResult));             
         break;
+      case 'updatePosition':  //更新花草位置
+        const positionResult = updatePosition(record);
+        if (positionResult.success) invalidateCache();
+        output.setContent(JSON.stringify(positionResult));             
+        break;
       case 'visit':  //页面访问
         const visitResult=saveView('','visit',record.entry_type,'',record.name)
         output.setContent(JSON.stringify(visitResult));             
@@ -208,6 +213,60 @@ function generateUniqueId() {
   const timestamp = new Date().getTime();
   const randomPart = Math.floor(Math.random() * 10000);
   return `${timestamp}-${randomPart}`;
+}
+
+/**
+ * 更新花草位置
+ * @param {Object} record { rid: 记录ID, x: X坐标, y: Y坐标 }
+ */
+function updatePosition(record) {
+  try {
+    const sheet = getSheet(0);
+    const dataRange = sheet.getDataRange();
+    const values = dataRange.getValues();
+    const headers = values[0];
+    
+    let idColumnIndex = -1;
+    let xColumnIndex = -1;
+    let yColumnIndex = -1;
+    
+    for (let i = 0; i < headers.length; i++) {
+      const h = headers[i].toLowerCase();
+      if (h === 'id' || h === 'rid') {
+        idColumnIndex = i;
+      }
+      if (h === 'x') {
+        xColumnIndex = i;
+      }
+      if (h === 'y') {
+        yColumnIndex = i;
+      }
+    }
+    
+    if (idColumnIndex === -1 || xColumnIndex === -1 || yColumnIndex === -1) {
+      throw new Error('未找到必要的列（ID/X/Y）');
+    }
+    
+    for (let i = values.length - 1; i >= 1; i--) {
+      if (values[i][idColumnIndex] == record.rid) {
+        const row = i + 1;
+        sheet.getRange(row, xColumnIndex + 1).setValue(Number(record.x));
+        sheet.getRange(row, yColumnIndex + 1).setValue(Number(record.y));
+        
+        return {
+          success: true,
+          message: '位置更新成功'
+        };
+      }
+    }
+    
+    throw new Error('未找到ID为 ' + record.rid + ' 的记录');
+  } catch (error) {
+    return {
+      success: false,
+      message: '更新位置失败: ' + error.toString()
+    };
+  }
 }
 
 function updateRecordFieldById(recordId, fieldName, incrementValue = 1) {
@@ -328,27 +387,47 @@ catch (error) {
 function saveRecord(record) {
   try {
     const sheet = getSheet(0);
+    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+    
+    // 根据列名查找位置（不区分大小写）
+    function colIndex(name) {
+      for (let i = 0; i < headers.length; i++) {
+        if (headers[i].toString().toLowerCase() === name.toLowerCase()) return i + 1; // 1-based
+      }
+      return -1;
+    }
+    
     const timestamp = new Date();
-    sheet.appendRow([
-      record.rid||'',
-      record.gname || '',
-      record.content || '',
-      record.picture || '',
-      timestamp,
-      record.entry_type,
-      record.key_id,
-      record.likes || 0,
-      record.comments || 0,
-      record.x || 0,
-      record.y || 0,
-      record.flowerName || '未知'
-    ]);
-    saveView(record.rid,'post',record.entry_type,record.key_id,record.gname)
+    const lastRow = sheet.getLastRow() + 1;
+    
+    const values = {
+      'ID': record.rid || '',
+      'Name': record.gname || '',
+      'Content': record.content || '',
+      'Picture': record.picture || '',
+      'PubDate': timestamp,
+      'entry_type': record.entry_type || '',
+      'key_id': record.key_id || '',
+      'Likes': record.likes || 0,
+      'Comments': record.comments || 0,
+      'x': record.x || 0,
+      'y': record.y || 0,
+      'flowerName': record.flowerName || '未知'
+    };
+    
+    for (const [header, value] of Object.entries(values)) {
+      const col = colIndex(header);
+      if (col > 0) {
+        sheet.getRange(lastRow, col).setValue(value);
+      }
+    }
+    
+    saveView(record.rid, 'post', record.entry_type, record.key_id, record.gname);
     return {
       success: true,
       message: 'save sucess',
       data: {
-        rid:record.rid,
+        rid: record.rid,
         timestamp: timestamp
       }
     };

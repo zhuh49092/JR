@@ -159,9 +159,21 @@ function getLatestDateFromDateArray(dates) {
 // 根据记录创建花草对象
 function createPlantFromRecord(record) {
     const cfg = window.GARDEN_CONFIG;
+    // 统一使用小写字段名（兼容 GS 返回的数据）
+    const flowerName = record.flowername || '';
+    const picture = record.picture || '';
+    const content = record.content || '';
+    const name = record.name || record.gname || '';
+    const x = record.x !== undefined ? record.x : undefined;
+    const y = record.y !== undefined ? record.y : undefined;
+    const likes = record.likes || 0;
+    const comments = record.comments || 0;
+    const id = record.id || record.rid || '';
+    const pubdate = record.pubdate || record.pubDate || '';
+    
     let imageIndex = 0;
-    if (record.flowerName) {
-        const targetPath = 'plant/' + record.flowerName + '.png';
+    if (flowerName) {
+        const targetPath = 'plant/' + flowerName + '.png';
         for (let i = 0; i < cfg.plantImages.length; i++) {
             if (cfg.plantImages[i] === targetPath) {
                 imageIndex = i;
@@ -170,7 +182,7 @@ function createPlantFromRecord(record) {
         }
         if (imageIndex === 0 && cfg.plantImages[0] !== targetPath) {
             for (let i = 0; i < cfg.plantImages.length; i++) {
-                if (cfg.plantImages[i].includes(record.flowerName)) {
+                if (cfg.plantImages[i].includes(flowerName)) {
                     imageIndex = i;
                     break;
                 }
@@ -180,19 +192,19 @@ function createPlantFromRecord(record) {
     
     return {
         id: currentPlantId++,
-        recordId: record.id || record.rid,
+        recordId: id,
         imageIndex: imageIndex,
         image: cfg.plantImages[imageIndex],
-        userImage: record.picture || '',
-        userContent: record.content || '',
-        userName: record.name || record.gname || '',
-        x: record.x !== undefined ? record.x : rand(200, cfg.worldSize.width - 200),
-        y: record.y !== undefined ? record.y : rand(200, cfg.worldSize.height - 200),
-        likes: record.likes || 0,
-        commentCount: record.comments || 0,
+        userImage: picture,
+        userContent: content,
+        userName: name,
+        x: x !== undefined ? x : rand(200, cfg.worldSize.width - 200),
+        y: y !== undefined ? y : rand(200, cfg.worldSize.height - 200),
+        likes: likes,
+        commentCount: comments,
         comments: [],
         isNew: false,
-        createdTime: record.pubdate || new Date().toISOString()
+        createdTime: pubdate || new Date().toISOString()
     };
 }
 
@@ -441,22 +453,16 @@ function createPlant() {
     const spot = findEmptySpot();
     
     if (!spot) {
-        // 找不到空位，提示用户
-        showBubbleMessage('花园太拥挤了！请重找一块空地。', 'warning');
+        showBubbleMessage('花园太拥挤了！请移动草坪找一块空地。', 'warning');
         return;
     }
     
-    const containerWidth = window.innerWidth;
-    const containerHeight = window.innerHeight;
-    const worldX = spot.x;
-    const worldY = spot.y;
-
-    // 创建新的花草记录
+    // 创建临时花草对象（待投稿）
     const maxIndex = Math.max(0, cfg.plantImages.length - 1);
     const imageIndex = randInt(0, maxIndex);
     const timestamp = Date.now();
     
-    const newPlant = {
+    pendingPlant = {
         id: currentPlantId++,
         recordId: 'new-' + timestamp,
         imageIndex: imageIndex,
@@ -464,21 +470,211 @@ function createPlant() {
         userImage: '',
         userContent: '',
         userName: '',
-        x: worldX,
-        y: worldY,
+        x: spot.x,
+        y: spot.y,
         likes: 0,
         comments: [],
-        isNew: true, // 标记为新种植的花草
+        isNew: true,
+        isMovable: true,
         createdTime: new Date().toISOString()
     };
+    
+    // 显示种植蒙板
+    showPlantingOverlay();
+}
 
-    registerPlant(newPlant);
+// 种植蒙板相关变量
+let pendingPlant = null;
+let $plantOverlay = null;
+let $plantOverlayImg = null;
+
+// 显示种植蒙板
+function showPlantingOverlay() {
+    const cfg = window.GARDEN_CONFIG;
+    
+    // 创建蒙板
+    $plantOverlay = $('<div id="plant-overlay"></div>');
+    $plantOverlay.css({
+        'position': 'fixed',
+        'top': '0',
+        'left': '0',
+        'width': '100%',
+        'height': '100%',
+        'background-color': 'rgba(0, 0, 0, 0.6)',
+        'z-index': '8000',
+        'display': 'flex',
+        'align-items': 'center',
+        'justify-content': 'center',
+        'flex-direction': 'column'
+    });
+    
+    // 创建容器
+    const $container = $('<div class="plant-overlay-container"></div>');
+    $container.css({
+        'display': 'flex',
+        'align-items': 'center',
+        'justify-content': 'center',
+        'gap': '40px'
+    });
+    
+    // 左箭头
+    const $leftArrow = $('<div class="plant-overlay-arrow"><i class="fas fa-chevron-left"></i></div>');
+    $leftArrow.css({
+        'width': '50px',
+        'height': '50px',
+        'background-color': 'rgba(255, 255, 255, 0.3)',
+        'border-radius': '50%',
+        'display': 'flex',
+        'align-items': 'center',
+        'justify-content': 'center',
+        'cursor': 'pointer',
+        'color': 'white',
+        'font-size': '24px',
+        'transition': 'background-color 0.2s'
+    }).on('mouseenter', function() {
+        $(this).css('background-color', 'rgba(255, 255, 255, 0.5)');
+    }).on('mouseleave', function() {
+        $(this).css('background-color', 'rgba(255, 255, 255, 0.3)');
+    }).on('click', function() {
+        pendingPlant.imageIndex = (pendingPlant.imageIndex - 1 + cfg.plantImages.length) % cfg.plantImages.length;
+        pendingPlant.image = cfg.plantImages[pendingPlant.imageIndex];
+        $plantOverlayImg.attr('src', pendingPlant.image);
+    });
+    
+    // 中间花草（点击投稿）
+    $plantOverlayImg = $('<img src="' + pendingPlant.image + '" alt="plant-preview">');
+    $plantOverlayImg.css({
+        'width': '200px',
+        'height': '200px',
+        'object-fit': 'contain',
+        'cursor': 'pointer',
+        'transition': 'transform 0.2s',
+        'animation': 'plantBreathe 1.5s ease-in-out infinite'
+    }).on('mouseenter', function() {
+        $(this).css('transform', 'scale(1.1)');
+    }).on('mouseleave', function() {
+        $(this).css('transform', 'scale(1)');
+    }).on('click', function() {
+        // 打开投稿弹窗
+        openSubmitModal();
+    });
+    
+    // 右箭头
+    const $rightArrow = $('<div class="plant-overlay-arrow"><i class="fas fa-chevron-right"></i></div>');
+    $rightArrow.css({
+        'width': '50px',
+        'height': '50px',
+        'background-color': 'rgba(255, 255, 255, 0.3)',
+        'border-radius': '50%',
+        'display': 'flex',
+        'align-items': 'center',
+        'justify-content': 'center',
+        'cursor': 'pointer',
+        'color': 'white',
+        'font-size': '24px',
+        'transition': 'background-color 0.2s'
+    }).on('mouseenter', function() {
+        $(this).css('background-color', 'rgba(255, 255, 255, 0.5)');
+    }).on('mouseleave', function() {
+        $(this).css('background-color', 'rgba(255, 255, 255, 0.3)');
+    }).on('click', function() {
+        pendingPlant.imageIndex = (pendingPlant.imageIndex + 1) % cfg.plantImages.length;
+        pendingPlant.image = cfg.plantImages[pendingPlant.imageIndex];
+        $plantOverlayImg.attr('src', pendingPlant.image);
+    });
+    
+    // 关闭按钮
+    const $closeBtn = $('<div class="plant-overlay-close"><i class="fas fa-times"></i></div>');
+    $closeBtn.css({
+        'position': 'absolute',
+        'top': '20px',
+        'left': '20px',
+        'right': 'auto',
+        'width': '40px',
+        'height': '40px',
+        'background-color': 'rgba(255, 255, 255, 0.3)',
+        'border-radius': '50%',
+        'display': 'flex',
+        'align-items': 'center',
+        'justify-content': 'center',
+        'cursor': 'pointer',
+        'color': 'white',
+        'font-size': '18px',
+        'transition': 'background-color 0.2s'
+    }).on('mouseenter', function() {
+        $(this).css('background-color', 'rgba(255, 255, 255, 0.5)');
+    }).on('mouseleave', function() {
+        $(this).css('background-color', 'rgba(255, 255, 255, 0.3)');
+    }).on('click', function() {
+        cancelPlant();
+    });
+    
+    // 提示文字
+    const $hint = $('<div class="plant-overlay-hint"></div>');
+    $hint.css({
+        'margin-top': '30px',
+        'color': 'white',
+        'font-size': '14px',
+        'text-align': 'center'
+    }).html('点击花草投稿 | 左右箭头切换花种');
+    
+    $container.append($leftArrow, $plantOverlayImg, $rightArrow);
+    $plantOverlay.append($closeBtn, $container, $hint);
+    $('body').append($plantOverlay);
+    $('body').css('overflow', 'hidden');
+}
+
+// 隐藏种植蒙板
+function hidePlantingOverlay() {
+    if ($plantOverlay) {
+        $plantOverlay.fadeOut(300, function() {
+            $plantOverlay.remove();
+            $plantOverlay = null;
+            $('body').css('overflow', 'auto');
+        });
+    }
+}
+
+// 取消种植
+function cancelPlant() {
+    // 隐藏蒙板
+    hidePlantingOverlay();
+    
+    // 清除待种植状态
+    pendingPlant = null;
+    
+    showBubbleMessage('已取消种植。', 'info');
+}
+
+// 完成种植（投稿完成后调用）
+function finalizePlant() {
+    if (!pendingPlant) return;
+    
+    // 隐藏蒙板
+    hidePlantingOverlay();
+    
+    // 注册花草
+    registerPlant(pendingPlant);
     cachedPlantsArray = null;
-    renderPlant(newPlant, true);
+    renderPlant(pendingPlant, false); // 不显示箭头
     
-    // 显示冒泡提示
-    showBubbleMessage('新植物已种植！点击可以切换样式或查看详情。', 'success');
+    // 清除待种植状态
+    pendingPlant = null;
     
+    showBubbleMessage('投稿成功！花草已种植。', 'success');
+}
+
+// 打开投稿弹窗
+function openSubmitModal() {
+    if (!pendingPlant) return;
+    const author = getGardenAuthor();
+    if (!author) {
+        showAuthorForm(function() {
+            showSubmitForm(pendingPlant);
+        });
+    } else {
+        showSubmitForm(pendingPlant);
+    }
 }
 
 function renderPlant(plant, showArrows) {
@@ -489,19 +685,20 @@ function renderPlant(plant, showArrows) {
     const $img = $('<img src="' + plant.image + '" alt="plant">');
     
     // 只有已投稿的花草才显示用户内容
-    let $userImage;
+    let $userContent;
     if (!plant.isNew) {
-        if (plant.userContent && plant.userContent.trim() !== '') {
+        // 优先显示图片，只有没有图片时才显示文字
+        if (plant.userImage && plant.userImage.trim() !== '' && plant.userImage.startsWith('http')) {
+            // 显示图片
+            $userContent = $('<div class="plant-user-image"><img src="' + plant.userImage + '" alt="user"></div>');
+        } else if (plant.userContent && plant.userContent.trim() !== '') {
             // 显示文字内容
-            $userImage = $('<div class="plant-user-text">' + plant.userContent + '</div>');
-        } else if (plant.userImage && plant.userImage.trim() !== '' && plant.userImage.startsWith('http')) {
-            // 显示图片（排除默认的用户图片）
-            $userImage = $('<div class="plant-user-image"><img src="' + plant.userImage + '" alt="user"></div>');
+            $userContent = $('<div class="plant-user-text">' + plant.userContent + '</div>');
         }
     }
 
     $plant.append($img);
-    if ($userImage) $plant.append($userImage);
+    if ($userContent) $plant.append($userContent);
     
     // 显示评论数徽章（如果有评论）
     if (!plant.isNew && plant.commentCount > 0) {
@@ -515,60 +712,16 @@ function renderPlant(plant, showArrows) {
         $plant.append($likesBadge);
     }
 
-    // 只有新种植的花草才添加左右箭头
-    if (plant.isNew) {
-        const $leftArrow = $('<div class="plant-arrow plant-arrow-left"><i class="fas fa-chevron-left"></i></div>');
-        const $rightArrow = $('<div class="plant-arrow plant-arrow-right"><i class="fas fa-chevron-right"></i></div>');
-        $plant.append($leftArrow, $rightArrow);
-
-        // 新花草持续呼吸动画（不自动移除）
-        $plant.addClass('plant-new');
-
-        // 箭头默认显示，5秒后自动隐藏
-        let arrowHideTimer = startArrowHideTimer();
-
-        function startArrowHideTimer() {
-            return setTimeout(function() {
-                $leftArrow.fadeOut(300);
-                $rightArrow.fadeOut(300);
-            }, getArrowHideDelay());
-        }
-
-        // 左箭头点击切换花草
-        $leftArrow.on('click', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            clearTimeout(arrowHideTimer);
-            plant.imageIndex = (plant.imageIndex - 1 + cfg.plantImages.length) % cfg.plantImages.length;
-            plant.image = cfg.plantImages[plant.imageIndex];
-            $img.attr('src', plant.image);
-            // 重置隐藏计时器
-            arrowHideTimer = startArrowHideTimer();
-        });
-
-        // 右箭头点击切换花草
-        $rightArrow.on('click', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            clearTimeout(arrowHideTimer);
-            plant.imageIndex = (plant.imageIndex + 1) % cfg.plantImages.length;
-            plant.image = cfg.plantImages[plant.imageIndex];
-            $img.attr('src', plant.image);
-            // 重置隐藏计时器
-            arrowHideTimer = startArrowHideTimer();
-        });
-    }
-
     // 当前作者自己的花草保持呼吸动画，方便用户识别
     const author = getGardenAuthor();
-    if (author && plant.userName === author && !plant.isNew) {
+    if (author && plant.userName === author) {
         $plant.addClass('plant-new');
     }
 
     $('#plants-layer').append($plant);
     
-    // 只有新种植的花草才可以拖动
-    if (plant.isNew) {
+    // 只有本地新增的花草可以拖动
+    if (!plant.isNew && plant.isMovable) {
         makePlantDraggable($plant, plant);
     }
     
@@ -578,33 +731,12 @@ function renderPlant(plant, showArrows) {
             return;
         }
         
-        // 新种植花草使用 clickAllowed 机制
-        if (plant.isNew) {
-            const plantState = this._plantDragState;
-            if (plantState && !plantState.getClickAllowed()) {
-                return;
-            }
-        } else {
-            // 已有花草使用原来的 dragging/justDragged 机制
-            if ($(this).hasClass('dragging') || $(this).data('justDragged')) {
-                return;
-            }
+        // 已有花草使用原来的 dragging/justDragged 机制
+        if ($(this).hasClass('dragging') || $(this).data('justDragged')) {
+            return;
         }
         
-        // 如果是新种植的花草，先检查是否重叠
-        if (plant.isNew) {
-            const overlapping = checkOverlap(plant);
-            if (overlapping) {
-                showBubbleMessage('这个位置已经有花草了，请先移动到其他位置！', 'warning');
-                return;
-            }
-        }
-        // 不重叠时才弹窗
-        if (plant.isNew) {
-            startSubmission(plant);
-        } else {
-            openModal(plant, e.clientX, e.clientY);
-        }
+        openModal(plant, e.clientX, e.clientY);
     });
 }
 
@@ -656,6 +788,11 @@ function makePlantDraggable($element, plant) {
                     $element.removeData('isOverlapping');
                     clickAllowed = true;
                     setTimeout(function() { clickAllowed = false; }, getDragClickDelay());
+                    
+                    // 可移动花草拖动后显示保存位置按钮
+                    if (plant.isMovable) {
+                        showSavePositionBtn(plant);
+                    }
                 }
             } else {
                 clickAllowed = true;
@@ -749,6 +886,70 @@ function makePlantDraggable($element, plant) {
     };
 }
 
+// 显示保存位置按钮
+let savePositionBtnTimer = null;
+function showSavePositionBtn(plant) {
+    // 清除之前的计时器和按钮
+    if (savePositionBtnTimer) {
+        clearTimeout(savePositionBtnTimer);
+        savePositionBtnTimer = null;
+    }
+    $('.save-position-btn').remove();
+    
+    const $btn = $('<div class="save-position-btn"><i class="fas fa-location-arrow"></i> 保存位置</div>');
+    $btn.css({
+        'position': 'fixed',
+        'bottom': '20px',
+        'left': '50%',
+        'transform': 'translateX(-50%)',
+        'background-color': 'rgba(34, 197, 94, 0.9)',
+        'color': 'white',
+        'padding': '10px 20px',
+        'border-radius': '20px',
+        'cursor': 'pointer',
+        'font-size': '13px',
+        'z-index': '7000',
+        'box-shadow': '0 2px 8px rgba(0,0,0,0.2)',
+        'display': 'flex',
+        'align-items': 'center',
+        'gap': '6px',
+        'transition': 'opacity 0.3s',
+        'white-space': 'nowrap'
+    }).on('mouseenter', function() {
+        $(this).css('background-color', 'rgba(22, 163, 74, 0.95)');
+    }).on('mouseleave', function() {
+        $(this).css('background-color', 'rgba(34, 197, 94, 0.9)');
+    }).on('click', async function() {
+        $(this).remove();
+        if (savePositionBtnTimer) {
+            clearTimeout(savePositionBtnTimer);
+            savePositionBtnTimer = null;
+        }
+        
+        // 调用 GS 更新位置
+        try {
+            await postData('updatePosition', {
+                rid: plant.recordId,
+                x: plant.x,
+                y: plant.y
+            });
+            showBubbleMessage('位置已保存！', 'success');
+        } catch (err) {
+            showBubbleMessage('位置保存失败：' + err.message, 'warning');
+        }
+    });
+    
+    $('body').append($btn);
+    
+    // 5秒后自动消失
+    savePositionBtnTimer = setTimeout(function() {
+        $btn.fadeOut(300, function() {
+            $(this).remove();
+        });
+        savePositionBtnTimer = null;
+    }, 5000);
+}
+
 // 检查是否与现有花草重叠
 function checkOverlap(plant, minDistance) {
     const dist = minDistance || getOverlapDistance() / 2;
@@ -829,7 +1030,9 @@ function showActivityMessage(message) {
         background: 'linear-gradient(135deg, #ff9a56, #ff6b6b)',
         zIndex: 10000,
         boxShadow: '0 4px 15px rgba(255, 107, 107, 0.4)',
-        whiteSpace: 'nowrap'
+        whiteSpace: 'normal',
+        maxWidth: '80vw',
+        textAlign: 'center'
     });
     $('body').append($msg);
     
@@ -1009,11 +1212,20 @@ function openModal(plant, mouseX, mouseY) {
             currentModalPlant.likes = (currentModalPlant.likes || 0) + 1;
             $btn.find('span').text('(' + currentModalPlant.likes + ')');
             $btn.addClass('text-green-600');
+            
+            // 更新草地上的点赞徽章
+            let $likesBadge = $('.plant[data-id="' + currentModalPlant.id + '"] .likes-badge');
+            if ($likesBadge.length === 0) {
+                // 如果没有徽章，创建一个新的
+                $likesBadge = $('<div class="likes-badge"></div>');
+                $('.plant[data-id="' + currentModalPlant.id + '"]').append($likesBadge);
+            }
+            $likesBadge.attr('data-count', currentModalPlant.likes);
         }
     });
     
     // 显示弹窗
-    $('#modal-overlay').css('display', 'flex');
+    $('#modal-overlay').css({ 'display': 'flex', 'z-index': '9000' });
     
     // 强制重绘并添加动画
     setTimeout(function() {
@@ -1047,8 +1259,7 @@ function showAuthorForm(callback) {
     $('#modal-title span').text('ニックネームを入力');
     $('#modal-content .modal-body').html(contentHtml + '<div class="mt-4 flex justify-center"><button id="author-submit" class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-green-700">確定</button></div>');
 
-    // 显示弹窗
-    $('#modal-overlay').css('display', 'flex');
+    $('#modal-overlay').css({ 'display': 'flex', 'z-index': '9000' });
     $('#modal-content').css('opacity', '1').css('transform', 'scale(1)');
 
     $('#author-submit').off('click').on('click', function() {
@@ -1067,6 +1278,8 @@ function showAuthorForm(callback) {
 
 // 投稿表单弹窗
 function showSubmitForm(plant) {
+    console.log('showSubmitForm 收到的 plant 数据:', plant);
+    
     const contentHtml = '<div class="space-y-4">' +
         '<div>' +
         '<label class="block text-sm font-medium text-gray-700 mb-2">写真</label>' +
@@ -1129,7 +1342,7 @@ function showSubmitForm(plant) {
         await submitData(selectedImage, message, plant);
     });
 
-    $('#modal-overlay').css('display', 'flex');
+    $('#modal-overlay').css({ 'display': 'flex', 'z-index': '9000' });
     $('#modal-content').css('opacity', '1').css('transform', 'scale(1)');
 }
 
@@ -1148,6 +1361,12 @@ async function submitData(imageFile, message, plant) {
             pictureUrl = uploadResult.picurl;
         }
 
+        const flowerNameValue = plant && plant.imageIndex !== undefined && window.GARDEN_CONFIG.plantImages[plant.imageIndex] 
+            ? window.GARDEN_CONFIG.plantImages[plant.imageIndex]
+                .replace('plant/', '')
+                .replace('.png', '')
+            : '未知';
+            
         const submitDataObj = {
             rid: generateUniqueId(),
             gname: gardenAuthor,
@@ -1157,10 +1376,12 @@ async function submitData(imageFile, message, plant) {
             key_id: plant ? plant.id : '',
             likes: 0,
             comments: 0,
-            x: plant ? plant.x : 0,
-            y: plant ? plant.y : 0,
-            flowerName: plant ? window.GARDEN_CONFIG.plantImages[plant.imageIndex]?.split('/').pop().replace('.png', '') || '未知' : '未知'
+            x: plant ? Math.round(plant.x) : 0,
+            y: plant ? Math.round(plant.y) : 0,
+            flowerName: flowerNameValue
         };
+        
+        console.log('投稿数据:', submitDataObj);
 
         await postData('save', submitDataObj);
         
@@ -1173,6 +1394,15 @@ async function submitData(imageFile, message, plant) {
         
         // 记录已提交的本地花草ID，防止轮询时重复添加
         localNewPlantIds.add(submitDataObj.rid);
+        
+        // 检查是否是待种植的花草（蒙板模式）
+        if (pendingPlant && pendingPlant.id === plant.id) {
+            // 关闭弹窗
+            closeModal();
+            // 完成种植，渲染到花园
+            finalizePlant();
+            return;
+        }
         
         // 从 newPlants 中移除
         const idx = newPlants.indexOf(plant);
@@ -1503,11 +1733,6 @@ function initGarden() {
         }
     }
 
-    // 绑定保存按钮事件
-    $('#save-btn').on('click', function() {
-        saveData();
-    });
-    
     // 绑定弹窗关闭按钮事件
     $('#modal-close').on('click', closeModal);
     $('#modal-overlay').on('click', function(e) {
@@ -1694,9 +1919,21 @@ function initGarden() {
                 latestPubDate = getLatestDateFromDateArray(allDates);
                 
                 data.forEach(function(record, index) {
+                    // 统一使用小写字段名（兼容 GS 返回的数据）
+                    const flowerName = record.flowername || '';
+                    const picture = record.picture || '';
+                    const content = record.content || '';
+                    const name = record.name || record.gname || '';
+                    const x = record.x !== undefined ? record.x : undefined;
+                    const y = record.y !== undefined ? record.y : undefined;
+                    const likes = record.likes || 0;
+                    const comments = record.comments || 0;
+                    const id = record.id || record.rid || '';
+                    const pubdate = record.pubdate || record.pubDate || '';
+                    
                     let imageIndex = 0;
-                    if (record.flowerName) {
-                        const targetPath = 'plant/' + record.flowerName + '.png';
+                    if (flowerName) {
+                        const targetPath = 'plant/' + flowerName + '.png';
                         for (let i = 0; i < cfg.plantImages.length; i++) {
                             if (cfg.plantImages[i] === targetPath) {
                                 imageIndex = i;
@@ -1705,7 +1942,7 @@ function initGarden() {
                         }
                         if (imageIndex === 0 && cfg.plantImages[0] !== targetPath) {
                             for (let i = 0; i < cfg.plantImages.length; i++) {
-                                if (cfg.plantImages[i].includes(record.flowerName)) {
+                                if (cfg.plantImages[i].includes(flowerName)) {
                                     imageIndex = i;
                                     break;
                                 }
@@ -1715,19 +1952,19 @@ function initGarden() {
                     
                     const plant = {
                         id: currentPlantId++,
-                        recordId: record.id || record.rid,
+                        recordId: id,
                         imageIndex: imageIndex,
                         image: cfg.plantImages[imageIndex],
-                        userImage: record.picture || '',
-                        userContent: record.content || '',
-                        userName: record.name || record.gname || '',
-                        x: record.x !== undefined ? record.x : rand(200, cfg.worldSize.width - 200),
-                        y: record.y !== undefined ? record.y : rand(200, cfg.worldSize.height - 200),
-                        likes: record.likes || 0,
-                        commentCount: record.comments || 0,
+                        userImage: picture,
+                        userContent: content,
+                        userName: name,
+                        x: x !== undefined ? x : rand(200, cfg.worldSize.width - 200),
+                        y: y !== undefined ? y : rand(200, cfg.worldSize.height - 200),
+                        likes: likes,
+                        commentCount: comments,
                         comments: [],
                         isNew: false,
-                        createdTime: record.pubdate || new Date().toISOString()
+                        createdTime: pubdate || new Date().toISOString()
                     };
                     
                     // 从缓存获取评论
@@ -1751,22 +1988,39 @@ function initGarden() {
         }
     }
     
+    // 初始化视口并显示草地
+    setupInitialViewport();
+    
     // 执行加载
     loadGardenData().then(function() {
-        // 加载完成后启动轮询（每10秒检查新数据）
+        // 加载完成后启动轮询（每 10 秒检查新数据）
         if (latestPubDate) {
             startPolling();
         }
+        
+        // 数据加载完成后，重新定位到有花草的位置
+        repositionViewportToPlants();
+        
+        // 视口移动完成后，隐藏 loading
+        setTimeout(function() {
+            $.hideLoading();
+            // 首次进入提示
+            showActivityMessage('单指移动草坪，双指缩放花园，点击花草浏览，参与评论点赞，还可点击右上角种植按钮，选择喜欢的花草，投稿种下');
+        }, 500); // 给一点时间让用户看到移动效果
     });
 
-    // 启动活跃度检查（记录home访问并定时检查）
+    // 启动活跃度检查（记录 home 访问并定时检查）
     startActivityCheck();
 
     spawnMultipleButterflies();
     spawnMultipleBees();
     createFireflies();
+}
 
-    // 默认放大并随机设置初始位置
+// 设置初始视口位置（显示草地）
+function setupInitialViewport() {
+    const cfg = window.GARDEN_CONFIG;
+    // 默认放大
     scale = getInitialScale();
     
     // 计算平移范围，确保花园在屏幕内
@@ -1783,31 +2037,47 @@ function initGarden() {
     const minTranslateX = containerWidth - worldScaledWidth;
     const minTranslateY = containerHeight - worldScaledHeight;
     
-    // 初始化视口定位：优先定位到有花草的区域
+    // 初始位置设为随机或中心
+    translateX = getConfig('interactionConfig.initialTranslateRandom', true) ? rand(minTranslateX, 0) : 0;
+    translateY = rand(minTranslateY, 0);
+    
+    updateTransform();
+    
+    // 显示花园（草地）
+    $('#garden-world').css('visibility', 'visible');
+    
+    // 显示 loading，禁止用户操作
+    $.showLoading();
+}
+
+// 重新定位视口到有花草的位置并显示花园
+function repositionViewportToPlants() {
     if (plants.length > 0 && getConfig('interactionConfig.initialTranslateRandom', true)) {
-        // 计算所有植物的中心点
-        let centerX = 0, centerY = 0;
-        for (let i = 0; i < plants.length; i++) {
-            centerX += plants[i].x;
-            centerY += plants[i].y;
-        }
-        centerX = centerX / plants.length;
-        centerY = centerY / plants.length;
+        const cfg = window.GARDEN_CONFIG;
+        const containerWidth = window.innerWidth;
+        const containerHeight = window.innerHeight;
         
-        // 将视口中心对准植物中心点
-        translateX = containerWidth / 2 - centerX * scale;
-        translateY = containerHeight / 2 - centerY * scale;
+        // 计算平移范围
+        const worldScaledWidth = cfg.worldSize.width * scale;
+        const worldScaledHeight = cfg.worldSize.height * scale;
+        const minTranslateX = containerWidth - worldScaledWidth;
+        const minTranslateY = containerHeight - worldScaledHeight;
+        
+        // 随机选择一株植物作为定位点
+        const randomPlant = plants[randInt(0, plants.length - 1)];
+        const plantX = randomPlant.x;
+        const plantY = randomPlant.y;
+        
+        // 将视口中心对准该植物的位置
+        translateX = containerWidth / 2 - plantX * scale;
+        translateY = containerHeight / 2 - plantY * scale;
         
         // 确保在有效范围内
         translateX = Math.max(minTranslateX, Math.min(0, translateX));
         translateY = Math.max(minTranslateY, Math.min(0, translateY));
-    } else {
-        // 没有植物或关闭随机定位时，使用随机位置
-        translateX = getConfig('interactionConfig.initialTranslateRandom', true) ? rand(minTranslateX, 0) : 0;
-        translateY = rand(minTranslateY, 0);
+        
+        updateTransform();
     }
-    
-    updateTransform();
     
     // 显示花园
     $('#garden-world').css('visibility', 'visible');
