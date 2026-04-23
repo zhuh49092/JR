@@ -1087,7 +1087,7 @@ function openModal(plant, mouseX, mouseY) {
     
     const isNewPlant = plant.isNew;
     const title = isNewPlant ? '新种植花草' : '花の記録';
-    const submitter = plant.userName || '匿名用户';
+    const submitter = plant.userName || '匿名';
     const submitDate = plant.createdTime ? new Date(plant.createdTime).toLocaleDateString('zh-CN') : '';
     
     // 设置标题
@@ -1162,7 +1162,7 @@ function openModal(plant, mouseX, mouseY) {
                 const commentDate = c.cdate ? new Date(c.cdate).toLocaleDateString('zh-CN') : '';
                 contentHtml += '<div class="bg-gray-50 rounded-lg p-2.5 hover:bg-green-50 transition-colors duration-200">';
                 contentHtml += '<div class="flex justify-between items-start mb-1">';
-                contentHtml += '<span class="font-medium text-green-600 text-xs">' + (c.user || '匿名用户') + '</span>';
+                contentHtml += '<span class="font-medium text-green-600 text-xs">' + (c.user || '匿名') + '</span>';
                 if (commentDate) {
                     contentHtml += '<span class="text-xs text-gray-400">' + commentDate + '</span>';
                 }
