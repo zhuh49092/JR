@@ -1086,7 +1086,7 @@ function openModal(plant, mouseX, mouseY) {
     currentModalPlant = plant;
     
     const isNewPlant = plant.isNew;
-    const title = isNewPlant ? '新种植花草' : '稿件详情';
+    const title = isNewPlant ? '新种植花草' : '花の記録';
     const submitter = plant.userName || '匿名用户';
     const submitDate = plant.createdTime ? new Date(plant.createdTime).toLocaleDateString('zh-CN') : '';
     
@@ -2009,7 +2009,7 @@ function initGarden() {
         setTimeout(function() {
             $.hideLoading();
             // 首次进入提示
-            showActivityMessage('指で動かして庭を探検しよう。ピンチで拡大・縮小できます。花をタップすると投稿やコメントが見られます。右上のボタンから花を植えることもできます🌱');
+            showActivityMessage('指で動かして庭を探検しよう。ピンチで拡大・縮小できます。花をタップすると、みんなの物語が見られます。右上のボタンから花を植えることもできます🌱');
         }, 500); // 给一点时间让用户看到移动效果
     });
 
