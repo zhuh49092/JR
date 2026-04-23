@@ -1281,6 +1281,10 @@ function showSubmitForm(plant) {
     console.log('showSubmitForm 收到的 plant 数据:', plant);
     
     const contentHtml = '<div class="space-y-4">' +
+        '<div class="text-center space-y-2 mb-2">' +
+        '<div class="bg-lime-100 text-gray-800 text-base font-medium py-2 px-3 rounded">フェスタで楽しかったことを教えて〜</div>' +
+        '<div class="text-gray-800 text-sm leading-relaxed">あなたの一言が花の栄養になる<br>（写真は自由にどうぞ）</div>' +
+        '</div>' +
         '<div>' +
         '<label class="block text-sm font-medium text-gray-700 mb-2">写真</label>' +
         '<div id="image-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center transition-colors">' +
@@ -1299,8 +1303,8 @@ function showSubmitForm(plant) {
         '</div>' +
         '</div>';
 
-    $('#modal-title span').text('投稿');
-    $('#modal-content .modal-body').html(contentHtml + '<div class="mt-4 flex justify-center"><button id="submit-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-green-700">投稿</button></div>');
+    $('#modal-title span').text('花を植える');
+    $('#modal-content .modal-body').html(contentHtml + '<div class="mt-4 flex justify-center"><button id="submit-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-green-700">植える</button></div>');
 
     // 图片上传逻辑
     let selectedImage = null;
