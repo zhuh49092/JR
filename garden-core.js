@@ -1048,9 +1048,11 @@ function showActivityMessage(message) {
 
 // 启动活跃度检查
 function startActivityCheck() {
-    // 首次进入页面记录home访问
+    // 首次进入页面记录访问来源
     if (typeof window.ViewCard === 'function') {
-        window.ViewCard(0, 'home');
+        const params = new URLSearchParams(window.location.search);
+        const entryType = params.get('entry') || 'home';
+        window.ViewCard(0, entryType);
     }
     // 活跃度检查已合并到轮询中，不再需要独立定时器
 }

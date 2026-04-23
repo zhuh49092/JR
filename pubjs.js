@@ -16,6 +16,14 @@ function generateUniqueId() {
     return `${timestamp}-${randomPart}`;
 }
 
+function getEntryContext() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+        entryType: params.get('entry') || 'home',
+        keyId: params.get('key') || ''
+    };
+}
+
 // 加载/隐藏提示
 $(function() {
     $.showLoading = function() {
@@ -146,10 +154,16 @@ window.PostComment = PostComment;
 // entryType: 'home' 或 'garden'
 async function ViewCard(_id, entryType){
     try {
-          var data=await postData('view',{rid:_id||'',entry_type:entryType||'garden',key_id:'',name:window.getGardenAuthor ? window.getGardenAuthor() : ''});
-         return { success: true };
+        const ctx = getEntryContext();
+        var data = await postData('view', {
+            rid: _id || '',
+            entry_type: entryType || ctx.entryType,
+            key_id: ctx.keyId,
+            name: window.getGardenAuthor ? window.getGardenAuthor() : ''
+        });
+        return { success: true };
     } catch (error) {
-         return { success: false, message: error.message };
+        return { success: false, message: error.message };
     } 	
 }
 window.ViewCard = ViewCard;
