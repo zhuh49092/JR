@@ -1373,19 +1373,23 @@ async function submitData(imageFile, message, plant) {
                 .replace('.png', '')
             : '不明';
             
-        const submitDataObj = {
-            rid: generateUniqueId(),
-            gname: gardenAuthor,
-            content: message,
-            picture: pictureUrl,
-            entry_type: 'garden',
-            key_id: plant ? plant.id : '',
-            likes: 0,
-            comments: 0,
-            x: plant ? Math.round(plant.x) : 0,
-            y: plant ? Math.round(plant.y) : 0,
-            flowerName: flowerNameValue
-        };
+        const params = new URLSearchParams(window.location.search);
+const entryType = params.get('entry') || 'garden';
+const keyId = params.get('key') || '';
+
+const submitDataObj = {
+    rid: generateUniqueId(),
+    gname: gardenAuthor,
+    content: message,
+    picture: pictureUrl,
+    entry_type: entryType,
+    key_id: keyId,
+    likes: 0,
+    comments: 0,
+    x: plant ? Math.round(plant.x) : 0,
+    y: plant ? Math.round(plant.y) : 0,
+    flowerName: flowerNameValue
+};
         
         console.log('投稿数据:', submitDataObj);
 
