@@ -1478,6 +1478,18 @@ async function addComment() {
         return;
     }
 
+    const author = getGardenAuthor();
+    if (!author) {
+        showAuthorForm(function() {
+            doAddComment(text);
+        });
+        return;
+    }
+
+    doAddComment(text);
+}
+
+async function doAddComment(text) {
     const result = await PostComment(currentModalPlant.recordId, text);
     if (!result.success) {
         showBubbleMessage('コメントの送信に失敗しました：' + result.message, 'warning');

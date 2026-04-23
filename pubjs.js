@@ -19,7 +19,7 @@ function generateUniqueId() {
 function getEntryContext() {
     const params = new URLSearchParams(window.location.search);
     return {
-        entryType: params.get('entry') || 'home',
+        entryType: params.get('entry') || 'garden',
         keyId: params.get('key') || ''
     };
 }
@@ -173,11 +173,14 @@ window.PostComment = PostComment;
 // entryType: 'home' 或 'garden'
 async function ViewCard(_id, entryType){
     try {
-        const ctx = getEntryContext();
+        const params = new URLSearchParams(window.location.search);
+        const urlEntryType = params.get('entry') || 'garden';
+        const urlKeyId = params.get('key') || '';
+        
         var data = await postData('view', {
             rid: _id || '',
-            entry_type: entryType || ctx.entryType,
-            key_id: ctx.keyId,
+            entry_type: urlEntryType,
+            key_id: urlKeyId,
             name: window.getGardenAuthor ? window.getGardenAuthor() : ''
         });
         return { success: true };
